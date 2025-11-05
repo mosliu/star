@@ -9,57 +9,37 @@ RUN npm install
 RUN npm run build
 
 # ============================================
-# Stage 2: Build Backend (PHP-FPM + Frontend)
+# Stage 2: Build Backend (Python FastAPI)
 # ============================================
-FROM php:8.2-fpm
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    git \
+    gcc \
     curl \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    zip \
-    unzip \
     sqlite3 \
-    libsqlite3-dev
+    && rm -rf /var/lib/apt/lists/*
 
-# Clear cache
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+# Copy Python backend files
+COPY ./python_backend/requirements.txt .
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo_sqlite mbstring exif pcntl bcmath gd
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Copy application code
+COPY ./python_backend .
 
-# Set working directory
-WORKDIR /var/www/html
+# Create necessary directories
+RUN mkdir -p /app/logs /app/uploads
 
-# Copy backend application files
-COPY ./backend .
+# Copy frontend build output
+COPY --from=frontend-builder /build/dist /app/static
 
-# Copy frontend build output to Laravel public directory
-COPY --from=frontend-builder /build/dist /var/www/html/public/dist
+# Expose FastAPI port
+EXPOSE 8000
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
-
-# Copy entrypoint script
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-# Create necessary directories and set permissions
-RUN mkdir -p storage/framework/{sessions,views,cache} \
-    && mkdir -p storage/logs \
-    && mkdir -p bootstrap/cache \
-    && mkdir -p public/dist \
-    && chown -R www-data:www-data storage bootstrap/cache public \
-    && chmod -R 775 storage bootstrap/cache public
-
-# Expose PHP-FPM port
-EXPOSE 9000
-
-# Set entrypoint
-ENTRYPOINT ["docker-entrypoint.sh"]
+# Start command
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

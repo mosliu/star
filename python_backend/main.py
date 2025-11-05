@@ -1,8 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import uvicorn
 from loguru import logger
+from pathlib import Path
 
 from app.core.config import settings
 from app.core.logging import setup_logging
@@ -31,6 +35,44 @@ app = FastAPI(
     debug=settings.debug
 )
 
+# Custom exception handler for validation errors with binary data
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Handle validation errors, especially those containing binary data and file uploads"""
+    from fastapi import UploadFile
+    
+    errors = []
+    for error in exc.errors():
+        # Create a safe error dict that handles binary data and non-serializable objects
+        safe_error = {}
+        for key, value in error.items():
+            try:
+                # Handle different value types
+                if isinstance(value, bytes):
+                    # For bytes, try to decode as UTF-8, or represent as hex
+                    try:
+                        safe_error[key] = value.decode('utf-8')
+                    except UnicodeDecodeError:
+                        # If it's not valid UTF-8, show it as hex string
+                        safe_error[key] = f"<binary data: {value[:50].hex()}...>" if len(value) > 50 else f"<binary data: {value.hex()}>"
+                elif isinstance(value, UploadFile):
+                    # For UploadFile objects, provide a readable representation
+                    safe_error[key] = f"<uploaded file: {value.filename} ({value.content_type})>"
+                elif hasattr(value, '__dict__'):
+                    # For objects with __dict__, try to extract relevant info
+                    safe_error[key] = str(value)
+                else:
+                    safe_error[key] = value
+            except Exception as e:
+                # If any error occurs, provide a safe representation
+                safe_error[key] = f"<{type(value).__name__} object>"
+        errors.append(safe_error)
+    
+    return JSONResponse(
+        status_code=422,
+        content={"detail": errors}
+    )
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
@@ -39,6 +81,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static files for serving uploaded files (like Laravel's public/storage)
+public_storage_path = Path("public/storage")
+public_storage_path.mkdir(parents=True, exist_ok=True)
+
+# Create subdirectories for uploads
+avatars_path = public_storage_path / "avatars"
+avatars_path.mkdir(parents=True, exist_ok=True)
+rewards_path = public_storage_path / "rewards"
+rewards_path.mkdir(parents=True, exist_ok=True)
+
+app.mount("/storage", StaticFiles(directory="public/storage"), name="storage")
 
 # Include routers
 app.include_router(children.router, prefix="/api/children", tags=["children"])

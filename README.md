@@ -5,8 +5,9 @@
 ## 技术栈
 
 ### 后端
-- Laravel 12 (PHP 8.2+)
+- FastAPI (Python 3.11+)
 - SQLite 数据库
+- SQLAlchemy ORM
 - RESTful API
 
 ### 前端
@@ -47,13 +48,15 @@ docker-compose up -d
 
 #### 后端
 ```bash
-cd backend
-composer install
-cp .env.example .env
-php artisan key:generate
-php artisan migrate
-php artisan storage:link
-php artisan serve
+cd python_backend
+# 安装依赖
+pip install -r requirements.txt
+# 初始化数据库
+python init_db.py
+# 启动服务
+python main.py
+# 或使用 uvicorn
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 #### 前端
@@ -67,14 +70,20 @@ npm run dev
 
 ```
 star/
-├── backend/          # Laravel后端
+├── python_backend/   # FastAPI Python后端
 │   ├── app/
-│   ├── database/
-│   └── routes/
+│   │   ├── api/     # API端点
+│   │   ├── models/  # 数据库模型
+│   │   ├── schemas/ # Pydantic模式
+│   │   └── core/    # 核心配置
+│   ├── database.db  # SQLite数据库
+│   └── main.py      # 应用入口
 ├── frontend/         # Vue前端
 │   ├── src/
 │   └── public/
 ├── docker-compose.yml
+├── Dockerfile
+├── nginx.conf
 └── README.md
 ```
 

@@ -8,7 +8,7 @@ class Child(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     birthday = Column(Date, nullable=False)
-    gender = Column(Enum('boy', 'girl'), nullable=False)
+    gender = Column(Enum('male', 'female'), nullable=False)  # Changed to match PHP's male/female
     avatar = Column(String(255), nullable=True)
     star_count = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
@@ -16,4 +16,4 @@ class Child(Base):
     
     # Relationships
     star_records = relationship("StarRecord", back_populates="child", cascade="all, delete-orphan")
-    rewards = relationship("Reward", secondary="child_reward", back_populates="children")
+    rewards = relationship("Reward", secondary="reward_children", back_populates="children")

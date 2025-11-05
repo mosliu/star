@@ -206,7 +206,12 @@ const handleSubmit = async () => {
       handleClose();
     }, 300);
   } catch (error: any) {
-    errorMessage.value = error.response?.data?.message || "操作失败";
+    // Try to get error message from different possible sources
+    errorMessage.value = 
+      error.message || 
+      error.response?.data?.message || 
+      error.response?.data?.error || 
+      "操作失败";
     if (submitButtonRef.value) {
       shake(submitButtonRef.value);
     }

@@ -18,8 +18,7 @@ def setup_logging():
         colorize=True,
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
         level="INFO",
-        enqueue=True,  # Thread-safe logging
-        encoding="utf-8"  # Handle Unicode properly
+        enqueue=True  # Thread-safe logging
     )
     
     # File handler for all logs
@@ -29,8 +28,7 @@ def setup_logging():
         retention="30 days",  # Keep logs for 30 days
         compression="zip",  # Compress old logs
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
-        level="DEBUG",
-        encoding="utf-8"
+        level="DEBUG"
     )
     
     # File handler for error logs only
@@ -41,7 +39,6 @@ def setup_logging():
         compression="zip",
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}\n{exception}",
         level="ERROR",
-        encoding="utf-8",
         backtrace=True,
         diagnose=True
     )

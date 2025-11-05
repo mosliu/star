@@ -25,5 +25,9 @@ class RewardResponse(RewardBase):
     class Config:
         from_attributes = True
         
-class RedeemRequest(BaseModel):
+class DeductionItem(BaseModel):
     child_id: int = Field(..., ge=1)
+    amount: int = Field(..., ge=0)
+    
+class RedeemRequest(BaseModel):
+    deductions: List[DeductionItem] = Field(..., min_items=1)
